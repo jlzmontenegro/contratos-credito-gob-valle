@@ -441,9 +441,9 @@
       let tools = card.querySelector('.card-tools');
       if (!tools) {
         tools = h('div', { class: 'card-tools' });
-        const btn = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'aria-expanded': 'false' }, 'Ver datos');
+        const btn = h('button', { type: 'button', class: 'btn btn-sm btn-data', 'aria-expanded': 'false' }, h('span', { class: 'btn-data-ico', 'aria-hidden': 'true' }, '▦'), h('span', { class: 'btn-data-txt' }, 'Ver datos'));
         const wrap = h('div', { class: 'mini-wrap', hidden: true });
-        btn.addEventListener('click', () => { const open = wrap.hidden; wrap.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.textContent = open ? 'Ocultar datos' : 'Ver datos'; });
+        btn.addEventListener('click', () => { const open = wrap.hidden; wrap.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.querySelector('.btn-data-txt').textContent = open ? 'Ocultar datos' : 'Ver datos'; btn.classList.toggle('is-open', open); });
         tools.append(btn); card.append(tools, wrap);
       }
       const wrap = card.querySelector('.mini-wrap');
@@ -1398,10 +1398,18 @@
     syncControls(); render();
   }
 
-  function activeChips() {
+  function activeChips(perValue = true) {
     const f = state.filters; const chips = [];
-    if (f.yearFrom != null || f.yearTo != null) chips.push({ text: `Firma: ${f.yearFrom ?? '…'}–${f.yearTo ?? '…'}`, clear: () => { f.yearFrom = f.yearTo = null; } });
-    MS_DIMS.forEach((dim) => { if (f[dim].size) chips.push({ text: `${DIM_LABEL[dim]}: ${[...f[dim]].join(', ')}`, clear: () => f[dim].clear() }); });
+    if (f.yearFrom != null || f.yearTo != null) {
+      const yt = f.yearFrom != null && f.yearTo != null ? (f.yearFrom === f.yearTo ? `${f.yearFrom}` : `${f.yearFrom} a ${f.yearTo}`) : f.yearFrom != null ? `desde ${f.yearFrom}` : `hasta ${f.yearTo}`;
+      chips.push({ text: `Firma: ${yt}`, clear: () => { f.yearFrom = f.yearTo = null; } });
+    }
+    // Una etiqueta por cada valor seleccionado, para quitarlos uno por uno
+    MS_DIMS.forEach((dim) => {
+      if (!f[dim].size) return;
+      if (perValue) [...f[dim]].forEach((v) => chips.push({ text: `${DIM_LABEL[dim]}: ${v}`, clear: () => f[dim].delete(v) }));
+      else chips.push({ text: `${DIM_LABEL[dim]}: ${[...f[dim]].join(', ')}`, clear: () => f[dim].clear() });
+    });
     if (f.termMin != null || f.termMax != null) chips.push({ text: `Plazo: ${f.termMin ?? 0}–${f.termMax ?? '∞'} años`, clear: () => { f.termMin = f.termMax = null; } });
     if (f.amtMin != null || f.amtMax != null) chips.push({ text: `Monto: ${f.amtMin ?? 0}–${f.amtMax ?? '∞'} mil M`, clear: () => { f.amtMin = f.amtMax = null; } });
     if (f.bucket != null) chips.push({ text: `Rango: ${BUCKETS[f.bucket].label}`, clear: () => { f.bucket = null; } });
@@ -1411,8 +1419,11 @@
   }
   function renderChips() {
     const chips = activeChips();
-    $('#chips').replaceChildren(...chips.map((c) => h('span', { class: 'chip' }, c.text, h('button', { type: 'button', 'aria-label': `Quitar filtro ${c.text}`, onclick: () => { c.clear(); syncControls(); render(); } }, '×'))));
-    const b = $('#filter-badge'); b.hidden = !chips.length; b.textContent = chips.length;
+    // Las mismas etiquetas (con × para quitar cada filtro) en la barra fija y en el panel de filtros
+    const make = () => chips.map((c) => h('span', { class: 'chip' }, c.text, h('button', { type: 'button', 'aria-label': `Quitar filtro ${c.text}`, onclick: () => { c.clear(); syncControls(); render(); } }, '×')));
+    $('#chips').replaceChildren(...make());
+    $('#chips-inline').replaceChildren(...(chips.length ? make() : [h('span', { class: 'muted chips-empty' }, 'Sin filtros aplicados')]));
+    ['#filter-badge', '#filter-badge-2'].forEach((id) => { const b = $(id); b.hidden = !chips.length; b.textContent = chips.length; });
   }
 
   function wireControls() {
@@ -1430,15 +1441,14 @@
     on('#f-include-flagged', 'change', (e) => { f().includeFlagged = e.target.checked; render(); });
     on('#f-colorby', 'change', (e) => { state.colorBy = e.target.value; Object.values(state.hidden).forEach((s) => s.clear()); render(); });
     on('#btn-reset', 'click', () => { state.filters = blankFilters(); state.colFilters = {}; syncControls(); render(); renderTable(state.rows); });
-    const filtersEl = document.querySelector('.filters');
-    const setOpen = (open) => { filtersEl.classList.toggle('is-open', open); $('#btn-filters').setAttribute('aria-expanded', String(open)); };
-    on('#btn-filters', 'click', () => setOpen(!filtersEl.classList.contains('is-open')));
-    on('#btn-apply', 'click', () => setOpen(false));
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
-    document.addEventListener('click', (e) => {
-      if (!filtersEl.contains(e.target)) setOpen(false);
-      const cm = $('#col-menu'); if (cm.open && !cm.contains(e.target)) cm.open = false;
-    });
+    // Panel de filtros abierto por defecto; se puede encoger y sigue mostrando las etiquetas de filtros
+    const box = $('#filter-box');
+    const setCollapsed = (c) => { box.classList.toggle('is-collapsed', c); $('#btn-filter-toggle').setAttribute('aria-expanded', String(!c)); };
+    on('#btn-filter-toggle', 'click', () => setCollapsed(!box.classList.contains('is-collapsed')));
+    on('#btn-filters', 'click', () => { setCollapsed(false); box.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    const closeMenus = (except) => document.querySelectorAll('details.ms[open]').forEach((d) => { if (d !== except) d.open = false; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
+    document.addEventListener('click', (e) => { closeMenus(e.target.closest && e.target.closest('details.ms')); });
     document.querySelectorAll('.seg-btn[data-scale]').forEach((b) => b.addEventListener('click', () => {
       state.scatterScale = b.dataset.scale;
       document.querySelectorAll('.seg-btn[data-scale]').forEach((x) => x.classList.toggle('is-on', x === b));
@@ -1494,7 +1504,8 @@
     const rows = filtered();
     state.rows = rows;
     renderChips();
-    $('#result-count').textContent = `${rows.length}/${state.all.filter((r) => state.filters.includeFlagged || !r.flags.length).length}`;
+    const rc = `${rows.length}/${state.all.filter((r) => state.filters.includeFlagged || !r.flags.length).length}`;
+    $('#result-count').textContent = rc; $('#result-count-2').textContent = `${rc} contratos`;
     renderKPIs(rows);
     renderCorrelation(rows);
     renderBuckets();
@@ -1538,7 +1549,7 @@
 
   /* ---------------------------------------------------------- exportaciones */
   function filtersSummary() {
-    const chips = activeChips().map((c) => c.text);
+    const chips = activeChips(false).map((c) => c.text);
     const cf = Object.entries(state.colFilters).filter(([, v]) => v).map(([k, v]) => `${colByKey[k].label} «${v}»`);
     if (cf.length) chips.push('Filtros de columna en la tabla: ' + cf.join(', '));
     return chips.length ? chips : ['Sin filtros (todos los contratos válidos)'];
@@ -1655,6 +1666,37 @@
     });
     y += Math.ceil(kp.length / cols) * (gh + 4) + 2;
 
+    // Concentración y tipo de acreedor
+    {
+      const mm = metrics();
+      const level = mm.hhi < 1500 ? 'baja' : mm.hhi < 2500 ? 'moderada' : 'alta';
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...ink); doc.text(pdfText('Concentración y tipo de acreedor'), M, y + 3); y += 6;
+      const cc = [
+        { label: 'Índice HHI', value: Number.isFinite(mm.hhi) ? nf0.format(mm.hhi) : '—', note: `Concentración ${level} (< 1.500 baja · > 2.500 alta)` },
+        { label: 'Principal acreedor', value: mm.byLender[0] ? pct(mm.share(mm.byLender[0].sum)) : '—', note: mm.byLender[0] ? `${mm.byLender[0].key} · ${fmtBig(mm.byLender[0].sum)}` : '' },
+        { label: 'Tres principales acreedores', value: pct(mm.top3), note: mm.byLender.slice(0, 3).map((g) => g.key).join(', ') },
+        { label: 'Banca pública y de fomento / privada', value: `${pct(mm.pub)} / ${pct(mm.priv)}`, note: 'Fomento: Findeter, Infivalle, B. Agrario' },
+      ];
+      cc.forEach((k, i) => {
+        const cx = M + i * (gw + 4), cy = y;
+        doc.setDrawColor(225, 224, 217); doc.setFillColor(249, 249, 247); doc.roundedRect(cx, cy, gw, gh, 2, 2, 'FD');
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...ink2); doc.text(pdfText(k.label), cx + 3, cy + 5);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...ink); doc.text(pdfText(k.value), cx + 3, cy + 12);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(137, 135, 129); doc.text(doc.splitTextToSize(pdfText(k.note), gw - 6)[0], cx + 3, cy + 17);
+      });
+      // Barra de participación pública vs. privada
+      y += gh + 3;
+      const bw = W - 2 * M;
+      if (Number.isFinite(mm.pub)) {
+        doc.setFillColor(...blue); doc.rect(M, y, bw * mm.pub, 3, 'F');
+        doc.setFillColor(235, 104, 52); doc.rect(M + bw * mm.pub + 0.5, y, Math.max(0, bw * mm.priv - 0.5), 3, 'F');
+        doc.setFontSize(7.5); doc.setTextColor(...ink2);
+        doc.text(pdfText(`Banca pública y de fomento ${pct(mm.pub)}`), M, y + 7);
+        doc.text(pdfText(`Banca privada ${pct(mm.priv)}`), M + bw, y + 7, { align: 'right' });
+        y += 15;
+      }
+    }
+
     // Hallazgos plazo–monto
     const c = state.corr || {};
     doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...ink); doc.text(pdfText('Relación plazo – monto'), M, y); y += 5;
@@ -1697,6 +1739,7 @@
       const groups = [
         ['Indicadores principales', ['total', 'wterm', 'wrem', 'balance', 'avg', 'mods', 'biggest']],
         ['Relación plazo – monto', ['pearson', 'r2', 'spearman', 'slope', 'annualTotal']],
+        ['Concentración y tipo de acreedor', ['hhi', 'top1', 'top3', 'ltype']],
         ['Gráficas', ['scatter', 'buckets', 'ratio', 'lenderTerm', 'lenders', 'years', 'gantt', 'maturity', 'amort', 'balanceChart', 'modsChart']],
       ];
       for (const [gname, keys] of groups) {
@@ -1772,7 +1815,7 @@
     });
 
     // Tablas resumen
-    for (const id of ['lenders', 'buckets', 'years', 'maturity']) {
+    for (const id of ['lenders', 'ltype', 'buckets', 'years', 'maturity']) {
       const s = state.specs[id]; if (!s) continue;
       y = doc.lastAutoTable.finalY + 8; ensure(30);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...ink); doc.text(pdfText(s.title), M, y); y += 3;

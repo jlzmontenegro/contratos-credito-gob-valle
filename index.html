@@ -29,65 +29,14 @@
     </div>
   </header>
 
-  <!-- Barra de filtros: en móvil se abre como panel; en escritorio queda fija arriba -->
+  <!-- Barra fija: muestra los filtros aplicados (con × para quitarlos) y lleva al panel de filtros -->
   <section class="filters" aria-label="Filtros">
     <div class="wrap filters-bar">
-      <button class="btn btn-filter" id="btn-filters" type="button" aria-expanded="false" aria-controls="filter-panel">
+      <button class="btn btn-filter" id="btn-filters" type="button" aria-controls="filter-box" title="Ir al panel de filtros">
         Filtros <span class="badge" id="filter-badge" hidden>0</span>
       </button>
       <div class="chips" id="chips" aria-live="polite"></div>
       <span class="result-count" id="result-count"></span>
-    </div>
-    <div class="filter-panel" id="filter-panel">
-      <div class="wrap">
-        <div class="filter-grid">
-          <div class="f">
-            <span class="f-label">Año de firma</span>
-            <div class="f-pair">
-              <select id="f-year-from" aria-label="Año de firma desde"></select>
-              <span class="muted">a</span>
-              <select id="f-year-to" aria-label="Año de firma hasta"></select>
-            </div>
-          </div>
-          <div class="f" data-ms="lender"><span class="f-label">Acreedor</span></div>
-          <div class="f" data-ms="ltype"><span class="f-label">Tipo de acreedor</span></div>
-          <div class="f" data-ms="period"><span class="f-label">Administración</span></div>
-          <div class="f" data-ms="status"><span class="f-label">Estado</span></div>
-          <div class="f">
-            <span class="f-label">Plazo (años)</span>
-            <div class="f-pair">
-              <input type="number" inputmode="decimal" id="f-term-min" min="0" step="0.5" placeholder="mín" aria-label="Plazo mínimo en años">
-              <span class="muted">a</span>
-              <input type="number" inputmode="decimal" id="f-term-max" min="0" step="0.5" placeholder="máx" aria-label="Plazo máximo en años">
-            </div>
-          </div>
-          <div class="f">
-            <span class="f-label">Monto (miles de millones)</span>
-            <div class="f-pair">
-              <input type="number" inputmode="decimal" id="f-amt-min" min="0" step="1" placeholder="mín" aria-label="Monto mínimo en miles de millones">
-              <span class="muted">a</span>
-              <input type="number" inputmode="decimal" id="f-amt-max" min="0" step="1" placeholder="máx" aria-label="Monto máximo en miles de millones">
-            </div>
-          </div>
-          <div class="f f-wide">
-            <span class="f-label">Buscar</span>
-            <input type="search" id="f-search" placeholder="N.º de contrato, acreedor u objeto…">
-          </div>
-          <div class="f">
-            <span class="f-label">Colorear gráficas por</span>
-            <select id="f-colorby">
-              <option value="period">Administración</option>
-              <option value="ltype">Tipo de acreedor</option>
-              <option value="status">Estado</option>
-            </select>
-          </div>
-          <label class="check f-wide"><input type="checkbox" id="f-include-flagged"> Incluir registros con inconsistencias <span class="muted" id="flagged-count"></span></label>
-        </div>
-        <div class="filter-foot">
-          <button class="btn btn-ghost" id="btn-reset" type="button">Limpiar filtros</button>
-          <button class="btn btn-primary btn-close-panel" id="btn-apply" type="button">Ver resultados</button>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -208,6 +157,62 @@
       <div class="section-head">
         <h2>Relación de contratos</h2>
         <p><span id="table-count"></span> Ordene tocando el encabezado, filtre por columna y elija qué columnas ver.</p>
+      </div>
+      <!-- Panel de filtros: abierto por defecto; se puede encoger y sigue mostrando los filtros aplicados -->
+      <div class="filter-box" id="filter-box">
+        <div class="filter-box-head">
+          <button type="button" class="filter-toggle" id="btn-filter-toggle" aria-expanded="true" aria-controls="filter-panel">
+            <span class="chev" aria-hidden="true">▾</span> Filtros <span class="badge" id="filter-badge-2" hidden>0</span>
+          </button>
+          <div class="chips chips-inline" id="chips-inline" aria-live="polite"></div>
+          <span class="result-count" id="result-count-2"></span>
+          <button class="btn btn-ghost btn-xs" id="btn-reset" type="button">Limpiar</button>
+        </div>
+        <div class="filter-panel" id="filter-panel">
+          <div class="filter-grid">
+            <div class="f f-span-m">
+              <span class="f-label">Año de firma</span>
+              <div class="f-pair">
+                <select id="f-year-from" aria-label="Año de firma desde"></select>
+                <span class="muted">a</span>
+                <select id="f-year-to" aria-label="Año de firma hasta"></select>
+              </div>
+            </div>
+            <div class="f" data-ms="lender"><span class="f-label">Acreedor</span></div>
+            <div class="f" data-ms="ltype"><span class="f-label">Tipo de acreedor</span></div>
+            <div class="f" data-ms="period"><span class="f-label">Administración</span></div>
+            <div class="f" data-ms="status"><span class="f-label">Estado</span></div>
+            <div class="f">
+              <span class="f-label">Plazo (años)</span>
+              <div class="f-pair">
+                <input type="number" inputmode="decimal" id="f-term-min" min="0" step="0.5" placeholder="mín" aria-label="Plazo mínimo en años">
+                <span class="muted">a</span>
+                <input type="number" inputmode="decimal" id="f-term-max" min="0" step="0.5" placeholder="máx" aria-label="Plazo máximo en años">
+              </div>
+            </div>
+            <div class="f">
+              <span class="f-label">Monto (miles de millones)</span>
+              <div class="f-pair">
+                <input type="number" inputmode="decimal" id="f-amt-min" min="0" step="1" placeholder="mín" aria-label="Monto mínimo en miles de millones">
+                <span class="muted">a</span>
+                <input type="number" inputmode="decimal" id="f-amt-max" min="0" step="1" placeholder="máx" aria-label="Monto máximo en miles de millones">
+              </div>
+            </div>
+            <div class="f f-wide">
+              <span class="f-label">Buscar</span>
+              <input type="search" id="f-search" placeholder="N.º de contrato, acreedor u objeto…">
+            </div>
+            <div class="f">
+              <span class="f-label">Colorear gráficas por</span>
+              <select id="f-colorby">
+                <option value="period">Administración</option>
+                <option value="ltype">Tipo de acreedor</option>
+                <option value="status">Estado</option>
+              </select>
+            </div>
+            <label class="check f-wide"><input type="checkbox" id="f-include-flagged"> Incluir registros con inconsistencias <span class="muted" id="flagged-count"></span></label>
+          </div>
+        </div>
       </div>
       <div class="table-tools">
         <div class="seg view-toggle" role="group" aria-label="Vista de la relación de contratos">
