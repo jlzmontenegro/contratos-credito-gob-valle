@@ -155,6 +155,7 @@ select, input[type="number"], input[type="search"], input[type="text"] {
 }
 .check { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--text-2); cursor: pointer; min-height: 44px; }
 .check input { accent-color: var(--accent); width: 20px; height: 20px; }
+.check[hidden] { display: none; }
 
 /* Multiselección */
 .ms { position: relative; }

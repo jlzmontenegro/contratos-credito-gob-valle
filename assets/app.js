@@ -158,13 +158,15 @@
       if (!Number.isFinite(value) || value <= 0) rec.flags.push('sin valor');
       out.push(rec);
     });
-    // Posibles duplicados: registro con inconsistencias con mismo valor y fecha fin que otro registro válido
+    // Duplicados: un registro con inconsistencias que tiene el mismo valor y fecha de fin que un contrato válido
+    // (p. ej. «CUENTA NO HABILITADA» 1.120.19.7-20822 = BBVA 1.120.19.07-20822) se elimina del análisis.
+    const removed = [];
     for (const r of out) {
       if (!r.flags.length) continue;
       const twin = out.find((o) => o !== r && !o.flags.length && o.value === r.value && o.end && r.end && +o.end === +r.end);
-      if (twin) r.flags.push(`posible duplicado de ${twin.ref} (${twin.lender})`);
+      if (twin) { r.twin = twin; removed.push(r); }
     }
-    return out;
+    return { records: out.filter((r) => !removed.includes(r)), removed };
   }
 
   /* ----------------------------------------------------------------- estado */
@@ -1080,13 +1082,16 @@
   function renderMethodology() {
     const all = state.all;
     const flagged = all.filter((r) => r.flags.length);
+    const removed = state.removed || [];
     const refCounts = countBy(all.filter((r) => r.ref !== '—'), (r) => r.ref).filter(([, n]) => n > 1);
     const expired = all.filter((r) => r.expired && !r.flags.length);
     const added = all.filter((r) => r.daysAdded > 0);
     const li = (t) => h('li', null, t);
-    $('#methodology').replaceChildren(
+    $('#methodology').replaceChildren(...[
       h('h3', null, 'Universo de datos'),
-      h('p', null, `Se leyeron ${all.length} registros de la pestaña «${state.sheetName}» del archivo ${state.fileName}. ${flagged.length ? `${flagged.length} registro(s) presentan inconsistencias y se excluyen por defecto (active «Incluir registros con inconsistencias» para verlos).` : 'No se detectaron registros con inconsistencias.'}`),
+      h('p', null, `Se leyeron ${all.length + removed.length} registros de la pestaña «${state.sheetName}» del archivo ${state.fileName}; se analizan ${all.length} contratos. ${flagged.length ? `${flagged.length} registro(s) presentan inconsistencias y se excluyen por defecto (active «Incluir registros con inconsistencias» para verlos).` : ''}`),
+      removed.length ? h('p', { style: 'margin-top:8px' }, 'Registros eliminados por estar duplicados (mismo valor y fecha de fin que un contrato válido):') : null,
+      removed.length ? h('ul', null, removed.map((r) => li(`${r.ref} · ${r.lenderRaw} · ${fmtCOP(r.value)} (${r.flags.join('; ')}): corresponde al contrato ${r.twin.ref} de ${r.twin.lender}.`))) : null,
       flagged.length ? h('ul', null, flagged.map((r) => li(`${r.ref} · ${r.lenderRaw} · ${fmtCOP(r.value)}: ${r.flags.join('; ')}.`))) : null,
       refCounts.length ? h('p', { style: 'margin-top:8px' }, 'Referencias de contrato repetidas en registros distintos (verificar en SECOP):') : null,
       refCounts.length ? h('ul', null, refCounts.map(([ref, n]) => li(`${ref}: ${n} registros (${all.filter((r) => r.ref === ref).map((r) => `${r.lender}, firmado ${fmtDate(r.signed)}`).join(' / ')})`))) : null,
@@ -1106,7 +1111,7 @@
         li('Administración: periodo de gobierno de cuatro años según la fecha de firma (2020–2023, 2024–2027).'),
         li('Tipo de acreedor: «Banca pública y de fomento» agrupa Findeter, Infivalle y Banco Agrario; el resto se clasifica como «Banca privada».'),
       ),
-    );
+    ].filter(Boolean));
   }
 
   /* ------------------------------------------------------- controles/filtros */
@@ -1133,7 +1138,8 @@
       $(id).replaceChildren(h('option', { value: '' }, 'Todos'), ...years.map((y) => h('option', { value: y }, y)));
     }
     const nf = state.all.filter((r) => r.flags.length).length;
-    $('#flagged-count').textContent = nf ? `(${nf})` : '(ninguno)';
+    $('#flagged-count').textContent = nf ? `(${nf})` : '';
+    $('#f-include-flagged').closest('label').hidden = !nf;
   }
 
   function syncControls() {
@@ -1165,7 +1171,7 @@
     if (f.amtMin != null || f.amtMax != null) chips.push({ text: `Monto: ${f.amtMin ?? 0}–${f.amtMax ?? '∞'} mil M`, clear: () => { f.amtMin = f.amtMax = null; } });
     if (f.bucket != null) chips.push({ text: `Rango: ${BUCKETS[f.bucket].label}`, clear: () => { f.bucket = null; } });
     if (f.q) chips.push({ text: `Buscar: «${f.q}»`, clear: () => { f.q = ''; } });
-    if (f.includeFlagged) chips.push({ text: 'Incluye inconsistencias', clear: () => { f.includeFlagged = false; } });
+    if (f.includeFlagged && state.all.some((r) => r.flags.length)) chips.push({ text: 'Incluye inconsistencias', clear: () => { f.includeFlagged = false; } });
     return chips;
   }
   function renderChips() {
@@ -1274,17 +1280,18 @@
 
   function showNotice(msg, withUpload) {
     const n = $('#load-notice'); n.hidden = false;
-    n.replaceChildren(h('p', null, msg), withUpload ? h('p', { class: 'muted', style: 'margin-top:6px' }, 'Use el botón «Cargar Excel» para seleccionar el archivo.') : null);
+    n.replaceChildren(h('div', null, h('p', null, msg), withUpload ? h('p', { class: 'muted', style: 'margin-top:6px' }, 'Use el botón «Cargar Excel» para seleccionar el archivo.') : null));
   }
 
   function loadWorkbook(buf, name) {
     const wb = XLSX.read(buf, { type: 'array', cellDates: true });
     const sheetName = wb.SheetNames.find((s) => norm(s) === norm(SHEET_NAME)) || wb.SheetNames[0];
-    const recs = parseSheet(wb.Sheets[sheetName]);
+    const { records: recs, removed } = parseSheet(wb.Sheets[sheetName]);
+    state.removed = removed;
     if (!recs.length) throw new Error(`la pestaña «${sheetName}» no tiene contratos`);
     state.all = recs; state.fileName = name; state.sheetName = sheetName;
     $('#load-notice').hidden = true;
-    $('#source-line').textContent = `Fuente: SECOP II · ${name} · pestaña «${sheetName}» · ${recs.length} registros`;
+    $('#source-line').textContent = `Fuente: SECOP II · ${name} · pestaña «${sheetName}» · ${recs.length} contratos`;
     $('#footer-file').textContent = name;
     readTokens();
     buildColorMaps();
