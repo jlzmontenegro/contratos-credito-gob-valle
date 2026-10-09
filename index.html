@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Crédito Público Valle</title>
+  <meta name="description" content="Dashboard de contratos de crédito público de la Gobernación del Valle del Cauca (Hacienda) 2020–2026: montos, plazos, acreedores, vencimientos y modificaciones.">
+  <meta name="theme-color" content="#2a78d6">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1' fill='white'/%3E%3Crect x='14' y='11' width='4' height='14' rx='1' fill='white'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="title-block">
+        <p class="eyebrow">Gobernación del Valle del Cauca · Hacienda</p>
+        <h1>Contratos de crédito público 2020–2026</h1>
+        <p class="subtitle" id="source-line">Fuente: SECOP II · pestaña «ANDANDO»</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-pdf" type="button">Reporte PDF</button>
+        <button class="btn" id="btn-xlsx" type="button">Reporte Excel</button>
+        <label class="btn btn-ghost" title="Cargar una versión actualizada del Excel">
+          <input type="file" id="file-input" accept=".xlsx,.xls" hidden>
+          <span>Cargar Excel</span>
+        </label>
+        <button class="btn btn-icon" id="btn-theme" type="button" aria-label="Cambiar tema claro/oscuro" title="Tema claro/oscuro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Barra de filtros: en móvil se abre como panel; en escritorio queda fija arriba -->
+  <section class="filters" aria-label="Filtros">
+    <div class="wrap filters-bar">
+      <button class="btn btn-filter" id="btn-filters" type="button" aria-expanded="false" aria-controls="filter-panel">
+        Filtros <span class="badge" id="filter-badge" hidden>0</span>
+      </button>
+      <div class="chips" id="chips" aria-live="polite"></div>
+      <span class="result-count" id="result-count"></span>
+    </div>
+    <div class="filter-panel" id="filter-panel">
+      <div class="wrap">
+        <div class="filter-grid">
+          <div class="f">
+            <span class="f-label">Año de firma</span>
+            <div class="f-pair">
+              <select id="f-year-from" aria-label="Año de firma desde"></select>
+              <span class="muted">a</span>
+              <select id="f-year-to" aria-label="Año de firma hasta"></select>
+            </div>
+          </div>
+          <div class="f" data-ms="lender"><span class="f-label">Acreedor</span></div>
+          <div class="f" data-ms="ltype"><span class="f-label">Tipo de acreedor</span></div>
+          <div class="f" data-ms="period"><span class="f-label">Administración</span></div>
+          <div class="f" data-ms="status"><span class="f-label">Estado</span></div>
+          <div class="f">
+            <span class="f-label">Plazo (años)</span>
+            <div class="f-pair">
+              <input type="number" inputmode="decimal" id="f-term-min" min="0" step="0.5" placeholder="mín" aria-label="Plazo mínimo en años">
+              <span class="muted">a</span>
+              <input type="number" inputmode="decimal" id="f-term-max" min="0" step="0.5" placeholder="máx" aria-label="Plazo máximo en años">
+            </div>
+          </div>
+          <div class="f">
+            <span class="f-label">Monto (miles de millones)</span>
+            <div class="f-pair">
+              <input type="number" inputmode="decimal" id="f-amt-min" min="0" step="1" placeholder="mín" aria-label="Monto mínimo en miles de millones">
+              <span class="muted">a</span>
+              <input type="number" inputmode="decimal" id="f-amt-max" min="0" step="1" placeholder="máx" aria-label="Monto máximo en miles de millones">
+            </div>
+          </div>
+          <div class="f f-wide">
+            <span class="f-label">Buscar</span>
+            <input type="search" id="f-search" placeholder="N.º de contrato, acreedor u objeto…">
+          </div>
+          <div class="f">
+            <span class="f-label">Colorear gráficas por</span>
+            <select id="f-colorby">
+              <option value="period">Administración</option>
+              <option value="ltype">Tipo de acreedor</option>
+              <option value="status">Estado</option>
+            </select>
+          </div>
+          <label class="check f-wide"><input type="checkbox" id="f-include-flagged"> Incluir registros con inconsistencias <span class="muted" id="flagged-count"></span></label>
+        </div>
+        <div class="filter-foot">
+          <button class="btn btn-ghost" id="btn-reset" type="button">Limpiar filtros</button>
+          <button class="btn btn-primary btn-close-panel" id="btn-apply" type="button">Ver resultados</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="wrap" id="main">
+    <div class="notice" id="load-notice" hidden></div>
+
+    <section class="kpis" id="kpis" aria-label="Indicadores principales"></section>
+
+    <nav class="toc" aria-label="Secciones">
+      <a href="#s-plazo">Plazo vs. monto</a>
+      <a href="#s-acreedores">Acreedores</a>
+      <a href="#s-evolucion">Evolución</a>
+      <a href="#s-vencimientos">Vencimientos</a>
+      <a href="#s-contratos">Contratos</a>
+    </nav>
+
+    <section class="section" id="s-plazo">
+      <div class="section-head">
+        <h2>Plazo frente a monto prestado</h2>
+        <p>¿Los créditos de mayor monto se pactan a más largo plazo? Cada punto es un contrato; la línea punteada es el ajuste lineal.</p>
+      </div>
+      <div class="stat-strip" id="corr-stats"></div>
+      <p class="insight" id="corr-insight"></p>
+      <div class="grid g-2-1">
+        <article class="card" data-chart="scatter">
+          <header class="card-head">
+            <h3>Plazo (años) vs. monto contratado</h3>
+            <div class="seg" role="group" aria-label="Escala del eje de monto">
+              <button type="button" class="seg-btn is-on" data-scale="linear">Lineal</button>
+              <button type="button" class="seg-btn" data-scale="logarithmic">Log</button>
+            </div>
+            <div class="legend" id="legend-scatter"></div>
+          </header>
+          <div class="chart-box h-tall"><canvas id="c-scatter" role="img" aria-label="Dispersión de plazo frente a monto por contrato"></canvas></div>
+          <p class="card-hint">Toque un punto para ubicar el contrato en la tabla.</p>
+        </article>
+        <article class="card" data-chart="buckets">
+          <header class="card-head"><h3>Monto por rango de plazo</h3><p class="card-sub">Toque una barra para filtrar ese rango</p></header>
+          <div class="chart-box h-tall"><canvas id="c-buckets" role="img" aria-label="Monto por rango de plazo"></canvas></div>
+        </article>
+      </div>
+      <div class="grid g-2">
+        <article class="card" data-chart="ratio">
+          <header class="card-head"><h3>Carga anual implícita por contrato</h3><p class="card-sub">Monto ÷ plazo, en miles de millones por año: capital a amortizar cada año si el pago fuese lineal</p></header>
+          <div class="chart-box" id="box-ratio"><canvas id="c-ratio" role="img" aria-label="Monto dividido por plazo por contrato"></canvas></div>
+        </article>
+        <article class="card" data-chart="lenderTerm">
+          <header class="card-head"><h3>Plazo por acreedor</h3><p class="card-sub">Barra: rango mínimo–máximo · punto: plazo promedio ponderado por monto</p></header>
+          <div class="chart-box" id="box-lenderTerm"><canvas id="c-lenderTerm" role="img" aria-label="Plazo mínimo, máximo y ponderado por acreedor"></canvas></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="s-acreedores">
+      <div class="section-head">
+        <h2>Acreedores y concentración</h2>
+        <p>Distribución del monto contratado por entidad financiera.</p>
+      </div>
+      <div class="grid g-2">
+        <article class="card" data-chart="lenders">
+          <header class="card-head"><h3>Monto contratado por acreedor</h3><p class="card-sub">Toque una barra para filtrar por ese acreedor</p></header>
+          <div class="chart-box" id="box-lenders"><canvas id="c-lenders" role="img" aria-label="Monto por acreedor"></canvas></div>
+        </article>
+        <article class="card" data-chart="ltype">
+          <header class="card-head"><h3>Participación por tipo de acreedor</h3><p class="card-sub">Toque una fila para filtrar</p></header>
+          <div class="share" id="share-ltype"></div>
+          <div class="hhi" id="hhi"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="s-evolucion">
+      <div class="section-head">
+        <h2>Evolución y vigencia</h2>
+        <p>Cuándo se contrató la deuda y durante cuánto tiempo estará vigente.</p>
+      </div>
+      <div class="grid g-1-2">
+        <article class="card" data-chart="years">
+          <header class="card-head"><h3>Monto firmado por año</h3><div class="legend" id="legend-years"></div></header>
+          <div class="chart-box h-mid"><canvas id="c-years" role="img" aria-label="Monto firmado por año"></canvas></div>
+          <p class="card-hint">Toque una columna para filtrar ese año.</p>
+        </article>
+        <article class="card" data-chart="gantt">
+          <header class="card-head"><h3>Cronograma de vigencia</h3><div class="legend" id="legend-gantt"></div></header>
+          <div class="chart-box" id="box-gantt"><canvas id="c-gantt" role="img" aria-label="Cronograma de inicio y fin de cada contrato"></canvas></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="s-vencimientos">
+      <div class="section-head">
+        <h2>Vencimientos y perfil estimado de amortización</h2>
+        <p>Estimación ilustrativa: supone amortización lineal del capital entre inicio y fin, sin periodos de gracia ni intereses. No reemplaza las tablas de amortización contractuales.</p>
+      </div>
+      <div class="grid g-2">
+        <article class="card" data-chart="maturity">
+          <header class="card-head"><h3>Monto por año de vencimiento</h3><div class="legend" id="legend-maturity"></div></header>
+          <div class="chart-box h-mid"><canvas id="c-maturity" role="img" aria-label="Monto por año de vencimiento"></canvas></div>
+        </article>
+        <article class="card" data-chart="amort">
+          <header class="card-head"><h3>Amortización anual estimada</h3><div class="legend" id="legend-amort"></div></header>
+          <div class="chart-box h-mid"><canvas id="c-amort" role="img" aria-label="Amortización anual estimada de capital"></canvas></div>
+        </article>
+      </div>
+      <div class="grid g-2">
+        <article class="card" data-chart="balance">
+          <header class="card-head"><h3>Saldo teórico de capital al cierre de cada año</h3><p class="card-sub">Valor contratado aún no amortizado (supuesto lineal)</p></header>
+          <div class="chart-box h-mid"><canvas id="c-balance" role="img" aria-label="Saldo teórico de capital por año"></canvas></div>
+        </article>
+        <article class="card" data-chart="mods">
+          <header class="card-head"><h3>Contratos según número de modificaciones</h3><p class="card-sub">Modificaciones registradas en SECOP</p></header>
+          <div class="chart-box h-mid"><canvas id="c-mods" role="img" aria-label="Número de contratos por cantidad de modificaciones"></canvas></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="s-contratos">
+      <div class="section-head">
+        <h2>Relación de contratos</h2>
+        <p><span id="table-count"></span> Ordene tocando el encabezado, filtre por columna y elija qué columnas ver.</p>
+      </div>
+      <div class="table-tools">
+        <div class="seg view-toggle" role="group" aria-label="Vista de la relación de contratos">
+          <button type="button" class="seg-btn is-on" data-view="cards">Tarjetas</button>
+          <button type="button" class="seg-btn" data-view="table">Tabla</button>
+        </div>
+        <details class="ms col-menu" id="col-menu">
+          <summary>Columnas</summary>
+          <div class="ms-panel" id="col-menu-panel"></div>
+        </details>
+        <label class="f-inline sort-mobile">Ordenar por
+          <select id="sort-mobile" aria-label="Ordenar contratos"></select>
+        </label>
+        <button class="btn btn-ghost btn-sm" id="btn-col-reset" type="button">Restablecer columnas</button>
+      </div>
+      <!-- Vista de tarjetas (móvil) -->
+      <div class="cards-list" id="cards-list"></div>
+      <!-- Vista de tabla (tablet/escritorio) -->
+      <div class="card table-card">
+        <div class="table-scroll">
+          <table class="data-table" id="tbl">
+            <thead id="tbl-head"></thead>
+            <tbody id="tbl-body"></tbody>
+            <tfoot id="tbl-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Calidad de datos y metodología</h2></div>
+      <div class="card prose" id="methodology"></div>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <p>Datos públicos de SECOP II. Archivo fuente: <code id="footer-file">data/contratos.xlsx</code>. Montos en pesos colombianos (COP) corrientes.</p>
+  </footer>
+
+  <div class="busy" id="busy" hidden><div class="busy-box">Generando reporte…</div></div>
+
+  <script src="assets/vendor/chart.umd.js"></script>
+  <script src="assets/vendor/xlsx.full.min.js"></script>
+  <script src="assets/vendor/jspdf.umd.min.js"></script>
+  <script src="assets/vendor/jspdf.plugin.autotable.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
