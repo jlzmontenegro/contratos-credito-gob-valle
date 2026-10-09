@@ -12,7 +12,7 @@ Dashboard web (mobile first) para analizar los contratos de crédito público re
 - **Relación de contratos**: número de contrato, acreedor, valor, objeto, fechas de inicio, fin y firma, plazo, estado y botón **Ver en SECOP**. Las columnas se pueden ordenar, filtrar (por ejemplo `>50` en Valor = más de 50 mil millones), mostrar u ocultar y reordenar arrastrando el encabezado. En el celular se ven como tarjetas o como tabla.
 - **Filtros interactivos**: año de firma, acreedor, tipo de acreedor, administración, estado, plazo, monto y búsqueda libre. Al tocar las barras de las gráficas se filtra por ese acreedor, rango de plazo o año. Los filtros quedan en la URL, así que se puede compartir una vista filtrada.
 - **Reportes**: **PDF** (indicadores, hallazgos, gráficas, relación de contratos con enlaces a SECOP y notas metodológicas) y **Excel** (resumen, contratos y una hoja por cada análisis), siempre con los filtros aplicados.
-- **Calidad de datos**: el registro 1.120.19.7-20822 con proveedor «CUENTA NO HABILITADA» se elimina del análisis porque es el mismo contrato BBVA 1.120.19.07-20822 por $180.000 millones. En general, se elimina todo registro con inconsistencias (sin fecha de inicio o «cuenta no habilitada») que tenga el mismo valor y la misma fecha de fin que un contrato válido. Otros registros con inconsistencias se excluyen por defecto y se pueden incluir con una casilla en los filtros.
+- **Calidad de datos**: se descartan los registros duplicados (sin fecha de inicio o con proveedor «cuenta no habilitada» y con el mismo valor y fecha de fin que un contrato válido). La sección de metodología señala referencias repetidas, contratos con fecha de fin cumplida y días adicionados.
 
 ## Actualizar los datos
 
