@@ -1662,6 +1662,74 @@
     doc.text(pdfText(`Pearson r = ${Number.isFinite(c.r) ? nf2.format(c.r) : '—'} · R² = ${Number.isFinite(c.r2) ? pct(c.r2) : '—'} · Spearman ρ = ${Number.isFinite(c.rho) ? nf2.format(c.rho) : '—'} · Pendiente = ${c.fit ? nf1.format(c.fit.b) + ' mil M por año de plazo' : '—'} · n = ${c.n ?? 0}`), M, y); y += 5;
     for (const t of state.insight) { const lines = doc.splitTextToSize(pdfText(t), W - 2 * M); ensure(lines.length * 4.2); doc.text(lines, M, y); y += lines.length * 4.2 + 1; }
 
+    // Cómo leer este reporte: explicaciones sencillas de indicadores y gráficas, a dos columnas
+    {
+      newPage();
+      const m = metrics();
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(...ink);
+      doc.text(pdfText('Cómo leer este reporte'), M, y + 4); y += 10;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...ink2);
+      const intro = doc.splitTextToSize(pdfText('Explicación en palabras sencillas de cada indicador y gráfica. Los ejemplos imaginan que todo lo que el Departamento ha pedido prestado son 10 manzanas, y se calcularon con los datos y filtros de este reporte.'), W - 2 * M);
+      doc.text(intro, M, y); y += intro.length * 4 + 3;
+      const gw = (W - 2 * M - 8) / 2, LH = 3.5, FS = 8;
+      let top = y; // borde superior de las columnas en la página actual
+      let gc = 0;
+      const gx = () => M + gc * (gw + 8);
+      const place = (hgt) => {
+        if (y + hgt <= H - M - 4) return;
+        if (gc === 0) { gc = 1; y = top; } else { newPage(); gc = 0; y = 16; top = 16; }
+      };
+      // Párrafo con etiqueta en negrilla al inicio
+      const para = (label, text, width) => {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(FS);
+        const lines = doc.splitTextToSize(pdfText(`${label} ${text}`), width);
+        return { lines, label: pdfText(label), h: lines.length * LH };
+      };
+      const drawPara = (p, x, y0) => {
+        p.lines.forEach((ln, i) => {
+          if (i === 0 && ln.startsWith(p.label)) {
+            doc.setFont('helvetica', 'bold'); doc.text(p.label, x, y0);
+            const lw = doc.getTextWidth(p.label + ' ');
+            doc.setFont('helvetica', 'normal'); doc.text(ln.slice(p.label.length).trimStart(), x + lw, y0);
+          } else { doc.setFont('helvetica', 'normal'); doc.text(ln, x, y0 + i * LH); }
+        });
+      };
+      const groups = [
+        ['Indicadores principales', ['total', 'wterm', 'wrem', 'balance', 'avg', 'mods', 'biggest']],
+        ['Relación plazo – monto', ['pearson', 'r2', 'spearman', 'slope', 'annualTotal']],
+        ['Gráficas', ['scatter', 'buckets', 'ratio', 'lenderTerm', 'lenders', 'years', 'gantt', 'maturity', 'amort', 'balanceChart', 'modsChart']],
+      ];
+      for (const [gname, keys] of groups) {
+        place(16);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...blue);
+        doc.text(pdfText(gname), gx(), y + 3); y += 7;
+        for (const key of keys) {
+          const d = INFO[key](m);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+          const tl = doc.splitTextToSize(pdfText(d.t), gw);
+          // En papel no aplican las instrucciones de interacción del tablero
+          const paper = (t) => t.split(/(?<=\.)\s+/).filter((x) => !/^(Toque|Tóquela|Con «Log»|La barra de colores de abajo)/.test(x)).join(' ');
+          const pw = para('Qué muestra:', d.what, gw), ph = para('Cómo leerlo:', paper(d.how), gw), pe = d.ex ? para('Ejemplo con manzanas:', d.ex, gw - 6) : null;
+          const hgt = tl.length * 4.2 + 1 + pw.h + 1.5 + ph.h + (pe ? 3 + pe.h + 2 : 0) + 4;
+          place(hgt);
+          const x = gx();
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+          doc.text(tl, x, y + 3); y += tl.length * 4.2 + 1;
+          doc.setTextColor(...ink2); doc.setFontSize(FS);
+          drawPara(pw, x, y + 3); y += pw.h + 1.5;
+          drawPara(ph, x, y + 3); y += ph.h;
+          if (pe) {
+            y += 1.5;
+            doc.setFillColor(234, 241, 251); doc.rect(x, y, gw, pe.h + 2.5, 'F');
+            doc.setFillColor(...blue); doc.rect(x, y, 0.8, pe.h + 2.5, 'F');
+            doc.setTextColor(...ink); drawPara(pe, x + 3.5, y + 3.3); y += pe.h + 2.5;
+          }
+          y += 4;
+        }
+        y += 2;
+      }
+    }
+
     // Gráficas: dos por fila
     const order = [['scatter', 'Plazo (años) vs. monto contratado'], ['buckets', 'Monto por rango de plazo'], ['ratio', 'Carga anual implícita por contrato (mil M/año)'], ['lenderTerm', 'Plazo por acreedor (rango y ponderado)'],
       ['lenders', 'Monto contratado por acreedor'], ['years', 'Monto firmado por año'], ['gantt', 'Cronograma de vigencia'], ['maturity', 'Monto por año de vencimiento'], ['amort', 'Amortización anual estimada (lineal)'], ['balance', 'Saldo teórico de capital'], ['mods', 'Contratos según número de modificaciones']];
