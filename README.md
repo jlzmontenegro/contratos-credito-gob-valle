@@ -5,6 +5,7 @@ Dashboard web (mobile first) para analizar los contratos de crédito público re
 ## Qué incluye
 
 - **Indicadores**: monto total, plazo promedio ponderado, vida remanente, saldo teórico, modificaciones, mayor contrato.
+- **Botón (i)** en cada indicador y gráfica: explica en palabras sencillas qué muestra, cómo leerlo y un ejemplo con «10 manzanas» calculado con los datos y filtros actuales.
 - **Plazo frente a monto** (análisis central): dispersión con tendencia lineal, correlaciones de Pearson y Spearman, R², pendiente, monto por rango de plazo, carga anual implícita (monto ÷ plazo) y plazo por acreedor. Incluye un texto de hallazgos que se recalcula con cada filtro.
 - **Acreedores**: monto por entidad, participación por tipo de acreedor y concentración (índice HHI).
 - **Evolución y vigencia**: monto firmado por año y cronograma de vigencia de cada contrato.

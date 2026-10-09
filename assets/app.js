@@ -465,13 +465,13 @@
     const biggest = rows.reduce((a, r) => (!a || r.value > a.value ? r : a), null);
     const balToday = balanceAt(rows, TODAY);
     const k = [
-      { label: 'Monto total contratado', value: fmtBig(total), note: `${rows.length} contratos · ${lenders.size} acreedores`, hero: true, raw: total },
-      { label: 'Plazo promedio ponderado', value: fmtYears(wTerm), note: `Promedio simple: ${fmtYears(sTerm)}`, raw: wTerm },
-      { label: 'Vida remanente ponderada', value: fmtYears(wRem), note: expired.length ? `${expired.length} con fecha fin ya cumplida` : 'Ninguno vencido por fecha fin', raw: wRem },
-      { label: 'Saldo teórico hoy', value: fmtBig(balToday), note: `${pct(total ? balToday / total : NaN)} del contratado (supuesto lineal)`, raw: balToday },
-      { label: 'Monto promedio por contrato', value: fmtBig(rows.length ? total / rows.length : NaN), note: `Mediana: ${fmtBig(median(rows.map((r) => r.value)))}`, raw: rows.length ? total / rows.length : NaN },
-      { label: 'Contratos modificados', value: `${modified.length} de ${rows.length}`, note: `${pct(rows.length ? modified.length / rows.length : NaN)} · ${nf0.format(sum(rows, (r) => r.mods))} modificaciones`, raw: modified.length },
-      { label: 'Mayor contrato', value: biggest ? fmtBig(biggest.value) : '—', note: biggest ? `${biggest.lender} · ${biggest.ref}` : '', raw: biggest ? biggest.value : NaN },
+      { info: 'total', label: 'Monto total contratado', value: fmtBig(total), note: `${rows.length} contratos · ${lenders.size} acreedores`, hero: true, raw: total },
+      { info: 'wterm', label: 'Plazo promedio ponderado', value: fmtYears(wTerm), note: `Promedio simple: ${fmtYears(sTerm)}`, raw: wTerm },
+      { info: 'wrem', label: 'Vida remanente ponderada', value: fmtYears(wRem), note: expired.length ? `${expired.length} con fecha fin ya cumplida` : 'Ninguno vencido por fecha fin', raw: wRem },
+      { info: 'balance', label: 'Saldo teórico hoy', value: fmtBig(balToday), note: `${pct(total ? balToday / total : NaN)} del contratado (supuesto lineal)`, raw: balToday },
+      { info: 'avg', label: 'Monto promedio por contrato', value: fmtBig(rows.length ? total / rows.length : NaN), note: `Mediana: ${fmtBig(median(rows.map((r) => r.value)))}`, raw: rows.length ? total / rows.length : NaN },
+      { info: 'mods', label: 'Contratos modificados', value: `${modified.length} de ${rows.length}`, note: `${pct(rows.length ? modified.length / rows.length : NaN)} · ${nf0.format(sum(rows, (r) => r.mods))} modificaciones`, raw: modified.length },
+      { info: 'biggest', label: 'Mayor contrato', value: biggest ? fmtBig(biggest.value) : '—', note: biggest ? `${biggest.lender} · ${biggest.ref}` : '', raw: biggest ? biggest.value : NaN },
     ];
     state.kpis = k;
     // Desglose del total por la dimensión de color activa
@@ -480,7 +480,7 @@
       h('div', { class: 'hero-bar' }, split.map((x) => h('span', { style: `width:${(x.v / total) * 100}%;background:${colorOfCat(x.c)}`, title: `${x.c}: ${fmtCOP(x.v)}` }))),
       h('ul', { class: 'hero-legend' }, split.map((x) => h('li', null, h('i', { style: `background:${colorOfCat(x.c)}` }), h('span', null, x.c), h('strong', null, `${fmtBig(x.v)}`), h('span', { class: 'muted' }, ` · ${pct(x.v / total)} · ${x.n}`))))) : null;
     $('#kpis').replaceChildren(...k.map((x) => h('div', { class: 'kpi' + (x.hero ? ' kpi-hero' : '') },
-      h('div', null, h('div', { class: 'kpi-label' }, x.label), h('div', { class: 'kpi-value' }, x.value)),
+      h('div', null, h('div', { class: 'kpi-label' }, x.label, infoBtn(x.info)), h('div', { class: 'kpi-value' }, x.value)),
       h('div', { class: 'kpi-note' }, x.note), x.hero ? splitEl : null)));
   }
 
@@ -491,13 +491,13 @@
     const r = pearson(xs, ys), rho = pearson(ranks(xs), ranks(ys)), fit = ols(xs, ys);
     state.corr = { n: pts.length, r, r2: r * r, rho, fit };
     const stats = [
-      { label: 'Correlación de Pearson (r)', value: Number.isFinite(r) ? nf2.format(r) : '—', note: Number.isFinite(r) ? `Relación lineal ${strength(r)}` : 'Se requieren ≥ 3 contratos' },
-      { label: 'R² del ajuste lineal', value: Number.isFinite(r) ? pct(r * r) : '—', note: 'Varianza del monto explicada por el plazo' },
-      { label: 'Correlación de Spearman (ρ)', value: Number.isFinite(rho) ? nf2.format(rho) : '—', note: 'Por rangos; robusta a valores extremos' },
-      { label: 'Pendiente', value: fit ? `${fit.b >= 0 ? '+' : ''}${nf1.format(fit.b)} mil M` : '—', note: 'Monto adicional por cada año más de plazo' },
-      { label: 'Carga anual implícita total', value: fmtBig(sum(pts, (p) => p.annual)), note: 'Σ monto ÷ plazo de los contratos' },
+      { info: 'pearson', label: 'Correlación de Pearson (r)', value: Number.isFinite(r) ? nf2.format(r) : '—', note: Number.isFinite(r) ? `Relación lineal ${strength(r)}` : 'Se requieren ≥ 3 contratos' },
+      { info: 'r2', label: 'R² del ajuste lineal', value: Number.isFinite(r) ? pct(r * r) : '—', note: 'Varianza del monto explicada por el plazo' },
+      { info: 'spearman', label: 'Correlación de Spearman (ρ)', value: Number.isFinite(rho) ? nf2.format(rho) : '—', note: 'Por rangos; robusta a valores extremos' },
+      { info: 'slope', label: 'Pendiente', value: fit ? `${fit.b >= 0 ? '+' : ''}${nf1.format(fit.b)} mil M` : '—', note: 'Monto adicional por cada año más de plazo' },
+      { info: 'annualTotal', label: 'Carga anual implícita total', value: fmtBig(sum(pts, (p) => p.annual)), note: 'Σ monto ÷ plazo de los contratos' },
     ];
-    $('#corr-stats').replaceChildren(...stats.map((s) => h('div', { class: 'stat' }, h('div', { class: 'kpi-label' }, s.label), h('div', { class: 'kpi-value' }, s.value), h('div', { class: 'kpi-note' }, s.note))));
+    $('#corr-stats').replaceChildren(...stats.map((s) => h('div', { class: 'stat' }, h('div', { class: 'kpi-label' }, s.label, infoBtn(s.info)), h('div', { class: 'kpi-value' }, s.value), h('div', { class: 'kpi-note' }, s.note))));
 
     // Narrativa automática
     const ins = [];
@@ -681,9 +681,9 @@
     const hhi = sum(shares, (s) => (s * 100) ** 2);
     const level = hhi < 1500 ? 'baja' : hhi < 2500 ? 'moderada' : 'alta';
     $('#hhi').replaceChildren(
-      h('div', null, h('div', { class: 'kpi-label' }, 'Índice HHI'), h('div', { class: 'kpi-value' }, Number.isFinite(hhi) ? nf0.format(hhi) : '—'), h('div', { class: 'kpi-note' }, `Concentración ${level}`)),
-      h('div', null, h('div', { class: 'kpi-label' }, 'Principal acreedor'), h('div', { class: 'kpi-value' }, pct(shares[0] ?? NaN)), h('div', { class: 'kpi-note' }, 'del monto')),
-      h('div', null, h('div', { class: 'kpi-label' }, 'Tres principales'), h('div', { class: 'kpi-value' }, pct(sum(shares.slice(0, 3)))), h('div', { class: 'kpi-note' }, 'del monto')),
+      h('div', null, h('div', { class: 'kpi-label' }, 'Índice HHI', infoBtn('hhi')), h('div', { class: 'kpi-value' }, Number.isFinite(hhi) ? nf0.format(hhi) : '—'), h('div', { class: 'kpi-note' }, `Concentración ${level}`)),
+      h('div', null, h('div', { class: 'kpi-label' }, 'Principal acreedor', infoBtn('top1')), h('div', { class: 'kpi-value' }, pct(shares[0] ?? NaN)), h('div', { class: 'kpi-note' }, 'del monto')),
+      h('div', null, h('div', { class: 'kpi-label' }, 'Tres principales', infoBtn('top3')), h('div', { class: 'kpi-value' }, pct(sum(shares.slice(0, 3)))), h('div', { class: 'kpi-note' }, 'del monto')),
     );
   }
 
@@ -1076,6 +1076,244 @@
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  }
+
+  /* ------------------------------------------------- ayudas (i) explicativas */
+  // Cada indicador y gráfica tiene un botón (i) que explica en palabras sencillas qué muestra, cómo leerlo
+  // y, con un ejemplo de «10 manzanas», qué significa el dato con los filtros actuales.
+  function metrics() {
+    const rows = state.rows;
+    const total = sum(rows, (r) => r.value);
+    const share = (v) => (total ? v / total : NaN);
+    const dated = rows.filter((r) => Number.isFinite(r.term));
+    const maxBy = (arr, fn) => arr.reduce((a, r) => (!a || fn(r) > fn(a) ? r : a), null);
+    const byLender = groupSum(rows, (r) => r.lender).sort((a, b) => b.sum - a.sum);
+    const lenderTerms = byLender.map((g) => ({ name: g.key, w: wavg(g.rows, (r) => r.term) })).filter((x) => Number.isFinite(x.w)).sort((a, b) => b.w - a.w);
+    const byYear = groupSum(rows.filter((r) => r.signYear), (r) => r.signYear).sort((a, b) => b.sum - a.sum);
+    const byEnd = groupSum(rows.filter((r) => r.end), (r) => r.end.getFullYear()).sort((a, b) => b.sum - a.sum);
+    const withDates = rows.filter((r) => r.start && r.end);
+    const yrs = withDates.length ? range(Math.min(...withDates.map((r) => r.start.getFullYear())), Math.max(...withDates.map((r) => r.end.getFullYear()))) : [];
+    const amortPeak = yrs.map((y) => ({ y, v: sum(withDates, (r) => amortIn(r, y)) })).sort((a, b) => b.v - a.v)[0];
+    const balPeak = yrs.map((y) => ({ y, v: balanceAt(withDates, jan1(y + 1)) })).sort((a, b) => b.v - a.v)[0];
+    const split = catsOf(rows).map((c) => ({ c, v: sum(rows.filter((r) => catOf(r) === c), (r) => r.value) }));
+    const modCounts = countBy(rows, (r) => r.mods);
+    const bal = balanceAt(rows, TODAY);
+    return {
+      n: rows.length, total, share, split,
+      wTerm: wavg(rows, (r) => r.term), sTerm: dated.length ? sum(dated, (r) => r.term) / dated.length : NaN,
+      wRem: wavg(rows, (r) => r.remaining), bal, balShare: share(bal),
+      avg: rows.length ? total / rows.length : NaN, median: median(rows.map((r) => r.value)),
+      nMod: rows.filter((r) => r.mods > 0).length, totMods: sum(rows, (r) => r.mods), maxMods: rows.length ? Math.max(...rows.map((r) => r.mods)) : 0,
+      noMods: (modCounts.find(([k]) => k === 0) || [0, 0])[1],
+      big: maxBy(rows, (r) => r.value), topAnnual: maxBy(dated, (r) => r.annual),
+      annualTot: sum(dated, (r) => r.annual),
+      b10: share(sum(dated.filter((r) => bucketOf(r.term) === 3), (r) => r.value)),
+      byLender, lenderTerms,
+      hhi: sum(byLender, (g) => (share(g.sum) * 100) ** 2),
+      top3: sum(byLender.slice(0, 3), (g) => share(g.sum)),
+      pub: share(sum(rows.filter((r) => r.ltype === TYPE_PUBLIC), (r) => r.value)),
+      priv: share(sum(rows.filter((r) => r.ltype === TYPE_PRIVATE), (r) => r.value)),
+      yearPeak: byYear[0], endPeak: byEnd[0], amortPeak, balPeak,
+      after2027: share(sum(rows.filter((r) => r.end && r.end.getFullYear() > 2027), (r) => r.value)),
+      c: state.corr || {},
+    };
+  }
+  const apples = (frac) => (Number.isFinite(frac) ? `${nf1.format(frac * 10)} manzana${Math.abs(frac * 10 - 1) < 0.05 ? '' : 's'}` : '— manzanas');
+  const NO_DATA = 'No hay contratos con los filtros actuales; quite algún filtro para ver el ejemplo con datos.';
+
+  const INFO = {
+    total: (m) => ({
+      t: 'Monto total contratado',
+      what: 'Es la suma del valor de todos los contratos de préstamo firmados por la Gobernación (con los filtros que tenga activos). Es lo máximo que los bancos se comprometieron a prestar.',
+      how: 'Es la foto completa del endeudamiento contratado. No es lo que se debe hoy: una parte ya se pagó y otra puede no haberse desembolsado todavía. La barra de colores de abajo muestra cómo se reparte según el selector «Colorear gráficas por».',
+      ex: m.n ? `Si todo lo que ha pedido prestado el Departamento fueran 10 manzanas, este número son esas 10 manzanas: ${fmtBig(m.total)}. ${m.split.map((x) => `${apples(m.share(x.v))} corresponden a «${x.c}»`).join('; ')}.` : NO_DATA,
+    }),
+    wterm: (m) => ({
+      t: 'Plazo promedio ponderado',
+      what: 'Cuántos años tiene en promedio el Departamento para devolver lo que le prestaron. «Ponderado» significa que los préstamos grandes cuentan más que los pequeños.',
+      how: 'Más años significa cuotas más pequeñas cada año, pero también que la deuda dura más tiempo y pasa a gobiernos futuros. Si el ponderado es mayor que el promedio simple (donde cada contrato cuenta igual), los préstamos grandes son los de plazo más largo.',
+      ex: `Si te prestan 9 manzanas a 10 años y 1 manzana a 2 años, el promedio simple es 6 años, pero el ponderado es 9,2 años, porque casi todas las manzanas están en el préstamo largo. Aquí el ponderado es ${fmtYears(m.wTerm)} y el simple ${fmtYears(m.sTerm)}.`,
+    }),
+    wrem: (m) => ({
+      t: 'Vida remanente ponderada',
+      what: 'Cuántos años faltan, en promedio, desde hoy hasta que terminen los contratos. Los préstamos grandes pesan más en el promedio.',
+      how: 'Un número alto indica que la deuda seguirá vigente durante muchos años. Los contratos cuya fecha de fin ya pasó cuentan como cero.',
+      ex: m.n ? `De 10 manzanas prestadas, en promedio faltan ${fmtYears(m.wRem)} para que se cumpla el plazo de devolverlas.` : NO_DATA,
+    }),
+    balance: (m) => ({
+      t: 'Saldo teórico hoy',
+      what: 'Una estimación de cuánto capital faltaría por pagar hoy, suponiendo que cada préstamo se paga en cuotas iguales desde su inicio hasta su fin.',
+      how: 'Es aproximado: no conocemos las tablas de pago reales, los periodos de gracia (años en que no se paga capital) ni si todo el dinero se desembolsó. Sirve para dimensionar la deuda, no como cifra oficial.',
+      ex: m.n ? `Si te prestan 10 manzanas a 10 años y devuelves 1 cada año, después de 3 años todavía debes 7. Con los contratos actuales, de cada 10 manzanas prestadas aún se deberían unas ${apples(m.balShare)} (${fmtBig(m.bal)}).` : NO_DATA,
+    }),
+    avg: (m) => ({
+      t: 'Monto promedio por contrato',
+      what: 'El tamaño típico de un préstamo. El promedio es el total dividido entre el número de contratos. La mediana es el contrato que queda en el medio si se ordenan de menor a mayor.',
+      how: 'Si el promedio es bastante mayor que la mediana, hay unos pocos préstamos muy grandes que suben el promedio.',
+      ex: `Si tienes tres préstamos de 1, 1 y 10 manzanas, el promedio es 4 manzanas, pero la mediana es 1: la mayoría son pequeños y uno grande jala el promedio hacia arriba. Aquí el promedio es ${fmtBig(m.avg)} y la mediana ${fmtBig(m.median)}.`,
+    }),
+    mods: (m) => ({
+      t: 'Contratos modificados',
+      what: 'Cuántos contratos han tenido cambios después de firmados (plazos, condiciones, cláusulas), según lo registrado en SECOP II.',
+      how: 'Modificar un contrato es legal y común, pero muchas modificaciones en un mismo contrato merecen revisar por qué se hicieron. En este archivo ninguna modificación aumentó el valor prestado.',
+      ex: `Si acuerdas devolver 10 manzanas en 5 años y luego cambias el acuerdo a 10 años, eso es una modificación: debes lo mismo, pero durante más tiempo. Aquí ${m.nMod} de ${m.n} contratos tuvieron cambios, ${nf0.format(m.totMods)} en total.`,
+    }),
+    biggest: (m) => ({
+      t: 'Mayor contrato',
+      what: 'El contrato de mayor valor con los filtros actuales.',
+      how: 'Muestra cuánto pesa un solo préstamo dentro del total.',
+      ex: m.big ? `De cada 10 manzanas prestadas, ${apples(m.share(m.big.value))} vienen solo de este contrato con ${m.big.lender} (${m.big.ref}).` : NO_DATA,
+    }),
+    pearson: (m) => ({
+      t: 'Correlación de Pearson (r)',
+      what: 'Un número entre -1 y 1 que indica si los préstamos más grandes tienden a tener plazos más largos (o más cortos).',
+      how: 'Cerca de 1: a más plazo, más dinero, casi siempre. Cerca de 0: no hay relación. Cerca de -1: a más plazo, menos dinero. Como guía: menos de 0,2 es muy débil; de 0,2 a 0,4, débil; de 0,4 a 0,6, moderada; más de 0,6, fuerte.',
+      ex: Number.isFinite(m.c.r) ? `Si cada vez que pides más manzanas te dan más años para devolverlas, r estaría cerca de 1. Aquí r = ${nf2.format(m.c.r)}, una relación ${strength(m.c.r)}: ${Math.abs(m.c.r) < 0.4 ? 'saber el plazo de un préstamo ayuda poco a adivinar cuántas manzanas se prestaron' : m.c.r > 0 ? 'los préstamos de más manzanas suelen tener más años para devolverse' : 'los préstamos de más manzanas suelen tener menos años para devolverse'}.` : NO_DATA,
+    }),
+    r2: (m) => ({
+      t: 'R² del ajuste lineal',
+      what: 'Qué parte de las diferencias de tamaño entre los préstamos se explica por su plazo.',
+      how: 'Va de 0 % a 100 %. Un valor bajo significa que el monto depende de otras cosas (el proyecto, el banco, el momento), no del plazo.',
+      ex: Number.isFinite(m.c.r2) ? `Si los préstamos tienen tamaños muy distintos, de cada 10 «manzanas de diferencia» entre ellos el plazo explica unas ${apples(m.c.r2)}; el resto se debe a otras razones.` : NO_DATA,
+    }),
+    spearman: (m) => ({
+      t: 'Correlación de Spearman (ρ)',
+      what: 'Parecida a Pearson, pero en lugar de usar los montos exactos ordena los préstamos del más pequeño al más grande y del más corto al más largo, y compara los dos órdenes.',
+      how: 'Sirve para que un préstamo muy grande no distorsione el resultado. Si Spearman y Pearson dan valores parecidos, la conclusión es más confiable.',
+      ex: Number.isFinite(m.c.rho) ? `Pon en una fila tus préstamos de menos a más manzanas y en otra de menos a más años: ρ mide si las dos filas quedan en el mismo orden (1 = idéntico, 0 = sin relación). Aquí ρ = ${nf2.format(m.c.rho)}.` : NO_DATA,
+    }),
+    slope: (m) => ({
+      t: 'Pendiente',
+      what: 'Cuánto más grande es, en promedio, un préstamo por cada año adicional de plazo, según la línea punteada de la gráfica.',
+      how: 'Es una tendencia promedio, no una regla. Si la correlación es débil, este número es poco confiable.',
+      ex: m.c.fit ? `Si la pendiente fuera de 1 manzana por año, un préstamo a 10 años tendría en promedio 1 manzana más que uno a 9 años. Aquí cada año extra de plazo se asocia con ${m.c.fit.b >= 0 ? '' : 'menos '}${fmtBig(Math.abs(m.c.fit.b) * 1e9)}${m.c.fit.b >= 0 ? ' más' : ''} de préstamo.` : NO_DATA,
+    }),
+    annualTotal: (m) => ({
+      t: 'Carga anual implícita total',
+      what: 'La suma de lo que habría que devolver de capital cada año si cada préstamo se pagara en cuotas iguales (monto ÷ plazo).',
+      how: 'Da una idea del peso anual de la deuda sobre el presupuesto. No incluye intereses, que se pagan aparte y aumentan esta cifra.',
+      ex: `Si te prestan 10 manzanas a 10 años, devuelves 1 manzana por año; si te las prestan a 5 años, 2 por año. Sumando todos los contratos, serían unos ${fmtBig(m.annualTot)} de capital por año.`,
+    }),
+    hhi: (m) => ({
+      t: 'Índice HHI (concentración)',
+      what: 'Mide si la deuda depende de pocos bancos o está repartida entre muchos. Va de casi 0 a 10.000.',
+      how: 'Menos de 1.500: poco concentrada. Entre 1.500 y 2.500: moderada. Más de 2.500: muy concentrada, es decir, pocos bancos tienen mucho peso sobre las finanzas del Departamento.',
+      ex: m.n ? `Si un solo vecino te presta las 10 manzanas, el índice es 10.000 (dependes totalmente de él). Si 10 vecinos te prestan 1 manzana cada uno, es 1.000. Aquí es ${nf0.format(m.hhi)}.` : NO_DATA,
+    }),
+    top1: (m) => ({
+      t: 'Principal acreedor',
+      what: 'Qué porcentaje de toda la deuda contratada tiene el banco que más le ha prestado al Departamento.',
+      how: 'Cuanto más alto, más depende el Departamento de ese banco.',
+      ex: m.byLender[0] ? `De cada 10 manzanas, ${apples(m.share(m.byLender[0].sum))} las prestó ${m.byLender[0].key}.` : NO_DATA,
+    }),
+    top3: (m) => ({
+      t: 'Tres principales acreedores',
+      what: 'Qué porcentaje de la deuda tienen, sumados, los tres bancos que más han prestado.',
+      how: 'Si pasa de la mitad, la mayor parte de la deuda está en pocas manos.',
+      ex: m.byLender.length ? `De cada 10 manzanas, ${apples(m.top3)} las prestaron ${m.byLender.slice(0, 3).map((g) => g.key).join(', ')}.` : NO_DATA,
+    }),
+    scatter: (m) => ({
+      t: 'Plazo vs. monto contratado',
+      what: 'Cada punto es un contrato. Más a la derecha significa más años para pagar; más arriba, más dinero prestado. La línea punteada es la tendencia promedio. Los colores siguen el selector «Colorear gráficas por».',
+      how: 'Si los puntos formaran una escalera que sube hacia la derecha, los préstamos grandes serían siempre los de más plazo. Toque un punto para ubicar el contrato en la tabla. Con «Log» se separan mejor los montos pequeños.',
+      ex: m.n ? `Imagine que pide manzanas a varios vecinos: un punto arriba a la derecha es «muchas manzanas y mucho tiempo para devolverlas». Aquí ${apples(m.b10)} de cada 10 se prestaron a cerca de 10 años. Por eso hay una columna de puntos en el 10: el plazo casi siempre fue el mismo, aunque la cantidad prestada cambió mucho.` : NO_DATA,
+    }),
+    buckets: (m) => ({
+      t: 'Monto por rango de plazo',
+      what: 'Agrupa los contratos según los años que tienen para pagarse y suma el dinero de cada grupo. Junto a cada barra aparece cuántos contratos hay y qué porcentaje del total representan.',
+      how: 'Muestra si la deuda es de corto o de largo plazo. Toque una barra para ver solo esos contratos en todo el tablero.',
+      ex: m.n ? `De cada 10 manzanas prestadas, ${apples(m.b10)} se deben devolver en un plazo de entre 9 y 10,5 años.` : NO_DATA,
+    }),
+    ratio: (m) => ({
+      t: 'Carga anual implícita por contrato',
+      what: 'Para cada contrato, divide el monto entre los años de plazo: es cuánto capital habría que pagar cada año si se pagara en partes iguales.',
+      how: 'Una barra larga es un préstamo que pesa mucho cada año sobre las finanzas, porque es grande o porque su plazo es corto. Permite comparar préstamos de distinto tamaño y plazo.',
+      ex: m.topAnnual ? `10 manzanas a 10 años son 1 manzana por año; 10 manzanas a 5 años son 2 por año: el segundo pesa el doble cada año aunque se preste lo mismo. El que más pesa aquí es ${m.topAnnual.lender} (${m.topAnnual.ref}): ${fmtBig(m.topAnnual.value)} a ${fmtYears(m.topAnnual.term)}, unos ${fmtBig(m.topAnnual.annual)} por año.` : NO_DATA,
+    }),
+    lenderTerm: (m) => ({
+      t: 'Plazo por acreedor',
+      what: 'Para cada banco, la barra clara va desde el plazo más corto hasta el más largo de sus contratos, y el punto es su plazo promedio (los préstamos grandes pesan más). El número entre paréntesis es cuántos contratos tiene.',
+      how: 'Sirve para ver qué bancos prestan a más largo plazo. Si solo se ve el punto, todos los contratos de ese banco tienen el mismo plazo.',
+      ex: m.lenderTerms.length > 1 ? `Si un vecino te presta manzanas una vez a 4 años y otra a 10, su barra va de 4 a 10. ${m.lenderTerms[0].name} es el que da más plazo en promedio (${fmtYears(m.lenderTerms[0].w)}) y ${m.lenderTerms[m.lenderTerms.length - 1].name} el que menos (${fmtYears(m.lenderTerms[m.lenderTerms.length - 1].w)}).` : NO_DATA,
+    }),
+    lenders: (m) => ({
+      t: 'Monto contratado por acreedor',
+      what: 'Cuánto dinero ha prestado cada banco al Departamento y qué porcentaje del total representa.',
+      how: 'Toque una barra para ver solo los contratos de ese banco en todo el tablero; las demás barras se ponen grises. Tóquela otra vez para quitar el filtro.',
+      ex: m.byLender.length > 1 ? `De cada 10 manzanas, ${apples(m.share(m.byLender[0].sum))} las prestó ${m.byLender[0].key} y ${apples(m.share(m.byLender[1].sum))} ${m.byLender[1].key}.` : NO_DATA,
+    }),
+    ltype: (m) => ({
+      t: 'Participación por tipo de acreedor',
+      what: 'Divide la deuda entre banca pública y de fomento (Findeter, Infivalle y Banco Agrario, entidades del Estado para financiar el desarrollo) y banca privada (bancos comerciales).',
+      how: 'La banca de fomento suele ofrecer condiciones especiales (tasas compensadas, plazos largos) y la privada, condiciones de mercado. Toque una fila para filtrar. Debajo están los indicadores de concentración.',
+      ex: m.n ? `De cada 10 manzanas, ${apples(m.pub)} vienen de banca pública o de fomento y ${apples(m.priv)} de bancos privados.` : NO_DATA,
+    }),
+    years: (m) => ({
+      t: 'Monto firmado por año',
+      what: 'Cuánto dinero se contrató en préstamos cada año, según la fecha de firma. Los colores siguen el selector «Colorear gráficas por» (por defecto, la administración que firmó).',
+      how: 'Muestra en qué momentos se aceleró el endeudamiento. Toque una columna para ver solo ese año.',
+      ex: m.yearPeak ? `Si cada año pides manzanas, esta gráfica muestra cuántas pediste en cada uno. El año con más fue ${m.yearPeak.key}: ${fmtBig(m.yearPeak.sum)}, es decir, ${apples(m.share(m.yearPeak.sum))} de cada 10 de todo el periodo.` : NO_DATA,
+    }),
+    gantt: (m) => ({
+      t: 'Cronograma de vigencia',
+      what: 'Cada barra es un contrato: empieza en su fecha de inicio y termina en su fecha de fin. La línea roja es el día de hoy.',
+      how: 'Lo que queda a la derecha de la línea roja es deuda que sigue vigente. Las barras que llegan hasta 2033–2035 son compromisos que tendrán que pagar los próximos gobiernos. Toque una barra para ubicar el contrato en la tabla.',
+      ex: m.n ? `Si hoy pides manzanas y las terminas de devolver en 2035, la barra va de hoy a 2035. De cada 10 manzanas, ${apples(m.after2027)} se terminan de devolver después de 2027, cuando ya habrá otro gobierno.` : NO_DATA,
+    }),
+    maturity: (m) => ({
+      t: 'Monto por año de vencimiento',
+      what: 'Cuánto dinero de los contratos termina su plazo en cada año. En gris aparecen los contratos cuya fecha de fin ya pasó.',
+      how: 'Una barra muy alta indica un año en que terminan muchos créditos a la vez.',
+      ex: m.endPeak ? `Si te prestan 10 manzanas en varios préstamos, esta gráfica dice en qué año vence cada uno. En ${m.endPeak.key} vencen contratos por ${fmtBig(m.endPeak.sum)}, es decir, ${apples(m.share(m.endPeak.sum))} de cada 10.` : NO_DATA,
+    }),
+    amort: (m) => ({
+      t: 'Amortización anual estimada',
+      what: 'Una estimación de cuánto capital tocaría pagar cada año si cada contrato se pagara en cuotas iguales entre su inicio y su fin.',
+      how: 'Es aproximada: los contratos reales pueden tener años de gracia (sin pagar capital) y cuotas distintas, y no incluye intereses. Sirve para ver en qué años se acumula la carga.',
+      ex: m.amortPeak ? `Si te prestan 10 manzanas a 10 años, devuelves 1 cada año. Si dos años después pides otras 10 a 10 años, durante varios años devuelves 2 por año. Aquí el año de mayor carga estimada es ${m.amortPeak.y}, con ${fmtBig(m.amortPeak.v)}.` : NO_DATA,
+    }),
+    balanceChart: (m) => ({
+      t: 'Saldo teórico de capital',
+      what: 'Cuánto capital quedaría por pagar al final de cada año, sumando todos los contratos, si se pagaran en cuotas iguales.',
+      how: 'La curva sube cuando se firman préstamos nuevos y baja a medida que se pagan. El punto más alto es cuando la deuda estimada fue mayor. La línea roja marca hoy.',
+      ex: m.balPeak ? `Si te prestan 10 manzanas a 10 años, al final del primer año debes 9, al final del segundo 8, y así hasta llegar a 0. Hoy la deuda estimada es ${fmtBig(m.bal)}: de cada 10 manzanas prestadas aún se deberían ${apples(m.balShare)}. El punto más alto es al cierre de ${m.balPeak.y}, con ${fmtBig(m.balPeak.v)}.` : NO_DATA,
+    }),
+    modsChart: (m) => ({
+      t: 'Contratos según número de modificaciones',
+      what: 'Cuántos contratos no han tenido cambios y cuántos han tenido 1, 2, 3 o más modificaciones registradas en SECOP II.',
+      how: 'Muchas modificaciones en un mismo contrato pueden indicar renegociaciones frecuentes; vale la pena revisar en SECOP qué se cambió en cada una.',
+      ex: m.n ? `Si acuerdas devolver 10 manzanas y después cambias el acuerdo tres veces, ese préstamo tiene 3 modificaciones. Aquí ${m.noMods} contratos nunca se han modificado y el que más cambios tiene acumula ${m.maxMods}.` : NO_DATA,
+    }),
+  };
+
+  function infoBtn(key) {
+    if (!INFO[key]) return null;
+    return h('button', { type: 'button', class: 'info-btn', 'aria-label': 'Qué significa este dato', title: '¿Qué significa?', 'data-info': key }, 'i');
+  }
+  function openInfo(key) {
+    const def = INFO[key]; if (!def) return;
+    const d = def(metrics());
+    let dlg = document.getElementById('info-dialog');
+    if (!dlg) {
+      dlg = h('dialog', { id: 'info-dialog', class: 'info-dialog', 'aria-labelledby': 'info-title' });
+      dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+      document.body.append(dlg);
+    }
+    dlg.replaceChildren(h('div', { class: 'info-body' },
+      h('div', { class: 'info-head' }, h('h3', { id: 'info-title' }, d.t), h('button', { type: 'button', class: 'info-close', 'aria-label': 'Cerrar', onclick: () => dlg.close() }, '×')),
+      h('p', { class: 'info-label' }, 'Qué muestra'), h('p', null, d.what),
+      h('p', { class: 'info-label' }, 'Cómo leerlo'), h('p', null, d.how),
+      d.ex ? h('div', { class: 'info-example' }, h('p', { class: 'info-label' }, '🍎 Ejemplo con manzanas'), h('p', null, d.ex)) : null,
+      state.rows.length !== state.all.length ? h('p', { class: 'info-foot' }, 'Las cifras del ejemplo usan los filtros activos.') : null));
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+  }
+  function addChartInfoButtons() {
+    const map = { balance: 'balanceChart', mods: 'modsChart' };
+    document.querySelectorAll('[data-chart]').forEach((card) => {
+      const h3 = card.querySelector('.card-head h3');
+      if (!h3 || h3.querySelector('.info-btn')) return;
+      h3.append(' ', infoBtn(map[card.dataset.chart] || card.dataset.chart));
+    });
   }
 
   /* ------------------------------------------------------------ metodología */
@@ -1501,6 +1739,8 @@
     renderColMenu();
     syncSortMobile();
     wireControls();
+    addChartInfoButtons();
+    document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('.info-btn'); if (b && state.all.length) { e.preventDefault(); e.stopPropagation(); openInfo(b.dataset.info); } }, true);
     fetch(DATA_URL, { cache: 'no-cache' })
       .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
       .then((buf) => loadWorkbook(buf, DATA_URL.split('/').pop()))
